@@ -1,0 +1,70 @@
+- name: Install Java (default-jdk)
+  ansible.builtin.apt:
+    name: default-jdk
+    state: present
+
+- name: Download GPG key
+  ansible.builtin.get_url:
+    url: https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+    dest: /usr/share/keyrings/jenkins-keyring.asc
+    mode: '0644'
+
+- name: Add repo apt
+  ansible.builtin.lineinfile:
+    path: /etc/apt/sources.list.d/jenkins.list
+    create: yes
+    line: "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/"
+    state: present
+
+- name: Update cache
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Install Jenkins
+  register: install
+  ansible.builtin.apt:
+    name: jenkins
+    state: present
+
+- name: Start Jenkins
+  when: install is changed
+  ansible.builtin.service:
+    name: jenkins
+    state: started
+
+- name: Get default admin password
+  when: install is changed
+  ansible.builtin.command: "cat /var/lib/jenkins/secrets/initialAdminPassword"
+  register: jenkins_password
+
+- name: Install plugins
+  when: install is changed
+  community.general.jenkins_plugin:
+    name: "{{ item }}"
+    url_username: "admin"
+    url_password: "{{ jenkins_password.stdout }}"
+  loop:
+    - git
+    - docker-plugin
+    - configuration-as-code
+    - cloudbees-folder
+    - credentials
+    - github
+    - instance-identity
+    - job-dsl
+    - script-security
+    - structs
+    - role-strategy
+    - ws-cleanup
+  register: jenkins_plugins
+  until: jenkins_plugins is succeeded
+  retries: 5
+  delay: 10
+
+- name: Upload config
+  template:
+    src: ../files/config.yml
+    dest: /var/lib/jenkins/jenkins.yaml
+    owner: root
+    group: root
+    mode: '0644'
