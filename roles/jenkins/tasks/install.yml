@@ -56,10 +56,18 @@
     - structs
     - role-strategy
     - ws-cleanup
+    - permissive-script-security
   register: jenkins_plugins
   until: jenkins_plugins is succeeded
   retries: 5
   delay: 10
+
+- name: Add JVM property to Jenkins config
+  lineinfile:
+    path: /etc/default/jenkins
+    regexp: '^JENKINS_JAVA_OPTIONS='
+    line: 'JENKINS_JAVA_OPTIONS="-Djava.awt.headless=true -Dpermissive-script-security.enabled=true"'
+    state: present
 
 - name: Upload config
   template:
@@ -67,4 +75,40 @@
     dest: /var/lib/jenkins/jenkins.yaml
     owner: root
     group: root
+    mode: '0644'
+
+- name: Add jenkins user to docker group
+  ansible.builtin.user:
+    name: jenkins
+    groups: docker
+    append: yes
+
+- name: Upload Jobs
+  template:
+    src: ../files/jobs/main.groovy
+    dest: /var/lib/jenkins/jobs/main.groovy
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Upload deploy.sh
+  copy:
+    src: ../files/deploy.sh
+    dest: /var/lib/jenkins/deploy.sh
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Ensure a directory is present
+  file:
+    path: /var/lib/jenkins/init.groovy.d
+    state: directory
+    mode: '0755'
+
+- name: Add approve job
+  copy:
+    src: "../files/jobs/approve.groovy"
+    dest: "/var/lib/jenkins/init.groovy.d/approve.groovy"
+    owner: jenkins
+    group: jenkins
     mode: '0644'

@@ -1,6 +1,14 @@
 - name: Install Jenkins, setup users and roles
   include_tasks: install.yml
 
+- name: Copy folder images to remote
+  ansible.builtin.copy:
+    src: ../files/images
+    dest: /var/lib/jenkins/
+    owner: root
+    group: root
+    mode: '0755'
+
 - name: restart Jenkins
   ansible.builtin.service:
     name: jenkins

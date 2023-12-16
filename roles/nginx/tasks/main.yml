@@ -9,7 +9,13 @@
     name: python3-certbot-nginx
     state: latest
 
+- name: Check if registry domain exists
+  stat:
+    path: "/etc/nginx/sites-available/{{registry_domain}}"
+  register: registry
+
 - name: Template nginx conf registry
+  when: not registry.stat.exists
   template:
     src: ../files/nginx_registry.conf
     dest: "/etc/nginx/sites-available/{{registry_domain}}"
@@ -17,19 +23,27 @@
 
 - name: Enable registry domain
   become: yes
+  when: not registry.stat.exists
   file:
     src: "/etc/nginx/sites-available/{{registry_domain}}"
     dest: "/etc/nginx/sites-enabled/{{registry_domain}}"
     state: link
   notify: reload nginx
 
+- name: Check if jenkins domain exists
+  stat:
+    path: "/etc/nginx/sites-available/{{jenkins_domain}}"
+  register: jenkins
+
 - name: Template nginx conf jenkins
+  when: not jenkins.stat.exists
   template:
     src: ../files/nginx_jenkins.conf
     dest: "/etc/nginx/sites-available/{{jenkins_domain}}"
   notify: reload nginx
 
 - name: Enable jenkins domain
+  when: not jenkins.stat.exists
   file:
     src: "/etc/nginx/sites-available/{{jenkins_domain}}"
     dest: "/etc/nginx/sites-enabled/{{jenkins_domain}}"

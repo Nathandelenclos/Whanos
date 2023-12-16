@@ -1,0 +1,7 @@
+- name: Copy folder to remote
+  ansible.builtin.copy:
+    src: ../files/images
+    dest: /var/lib/jenkins/images/
+    owner: root
+    group: root
+    mode: '0755'

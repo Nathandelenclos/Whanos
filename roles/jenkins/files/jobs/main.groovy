@@ -1,0 +1,58 @@
+folder("Whanos base images") {
+	description("The base images of whanos.")
+}
+
+folder("Projects") {
+	description("The available projets in whanos.")
+}
+
+languages = ["c", "java", "javascript", "python", "befunge"]
+
+languages.each { language ->
+	freeStyleJob("Whanos base images/whanos-$language") {
+		steps {
+			shell("docker build /var/lib/jenkins/images/$language -f /var/lib/jenkins/images/$language/Dockerfile.base -t whanos-$language")
+		}
+	}
+}
+
+freeStyleJob("Whanos base images/Build all base images") {
+	publishers {
+		downstream(
+			languages.collect { language -> "Whanos base images/whanos-$language" }
+		)
+	}
+}
+
+freeStyleJob("link-project") {
+	parameters {
+		stringParam("GIT_URL", null, 'Git repository url (e.g.: "https://github.com/Octopus773/ts-hello-world.git")')
+		stringParam("DISPLAY_NAME", null, "Display name for the job")
+		stringParam("REGISTRY_URL", "{{registry_domain}}", "Registry to store docker image")
+	}
+	steps {
+		dsl {
+			text('''
+				freeStyleJob("Projects/$DISPLAY_NAME") {
+					scm {
+						git {
+							remote {
+								name("origin")
+								url("$GIT_URL")
+							}
+						}
+					}
+					triggers {
+						scm("* * * * *")
+					}
+					wrappers {
+						preBuildCleanup()
+					}
+					steps {
+						shell("/var/lib/jenkins/deploy.sh \\"$DISPLAY_NAME\\" \\"$REGISTRY_URL\\"")
+					}
+				}
+			''')
+		}
+	}
+}

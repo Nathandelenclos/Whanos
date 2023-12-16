@@ -10,6 +10,7 @@
   become: yes
   vars_files:
     - group_vars/jenkins.yml
+    - group_vars/nginx.yml
   roles:
     - jenkins
 
