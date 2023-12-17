@@ -90,19 +90,19 @@
     state: directory
     mode: '0755'
 
-- name: Vérifier l'existence de la clé SSH
+- name: Check if SSH key exist
   become_user: jenkins
   stat:
     path: "/var/lib/jenkins/.ssh/id_rsa"
   register: ssh_key
 
-- name: Vérifier l'existence de know_hosts
+- name: Check if know_hosts exist
   become_user: jenkins
   stat:
     path: "/var/lib/jenkins/.ssh/known_hosts"
   register: known_hosts
 
-- name: Générer une paire de clés SSH
+- name: Create SSH key
   become_user: jenkins
   ansible.builtin.command: ssh-keygen -b 2048 -t rsa -f /var/lib/jenkins/.ssh/id_rsa -q -N ""
   when: not ssh_key.stat.exists
