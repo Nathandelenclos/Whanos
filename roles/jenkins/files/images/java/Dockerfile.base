@@ -1,14 +1,24 @@
-FROM maven:3.8-openjdk-21-slim
+# Start from a Java SE 21 base image
+FROM openjdk:21-jdk AS builder
 
-SHELL ["/bin/bash", "-c"]
+# Set the working directory inside the builder stage
+WORKDIR /build
 
-ONBUILD COPY . /app
+# Copy only the pom.xml initially to fetch dependencies
+COPY pom.xml .
 
-ONBUILD WORKDIR /app
+# Fetch all dependencies
+RUN mvn dependency:go-offline
 
-ONBUILD RUN mvn dependency:resolve -f app/pom.xml \
-            && mvn package -f app/pom.xml \
-            && cp app/target/app.jar . \
-            && rm -rf app/
+# Start a new stage from the Java base image
+FROM openjdk:21-jdk AS runtime
 
-ONBUILD CMD java -jar app.jar
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy built artifacts from the builder stage
+COPY --from=builder /build .
+
+# At runtime, this image will expect the application's jar file
+# and any necessary resources to be provided.
+CMD ["java", "-jar", "app.jar"]

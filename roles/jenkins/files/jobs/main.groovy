@@ -27,8 +27,9 @@ freeStyleJob("Whanos base images/Build all base images") {
 freeStyleJob("link-project") {
 	description('Clé SSH publique:\n\n{{public_key}}')
 	parameters {
-		stringParam("GIT_URL", null, 'Git repository url (e.g.: "https://github.com/Octopus773/ts-hello-world.git")')
 		stringParam("DISPLAY_NAME", null, "Display name for the job")
+		stringParam("GIT_URL", null, 'Git repository url (e.g.: "https://github.com/Octopus773/ts-hello-world.git")')
+		stringParam("GIT_BRANCH", "master", "Git branch to use")
 		stringParam("REGISTRY_URL", "{{registry_domain}}", "Registry to store docker image")
 	}
 	steps {
@@ -40,6 +41,7 @@ freeStyleJob("link-project") {
 						git {
 							remote {
 								name("origin")
+								branch("$GIT_BRANCH")
 								url("$GIT_URL")
 							}
 						}

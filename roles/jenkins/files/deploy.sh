@@ -28,11 +28,12 @@ if [[ ${#LANGUAGE[@]} != 1 ]]; then
 fi
 echo "${LANGUAGE[@]} matched"
 
-image_name="$2/whanos/whanos-$1-${LANGUAGE[0]}"
+image_name="$2/whanos-$1-${LANGUAGE[0]}"
 
 if [[ -f Dockerfile ]]; then
 	docker build . -t "$image_name"
 else
+	image_name="$image_name-standalone"
 	docker build . -f "/var/lib/jenkins/images/${LANGUAGE[0]}/Dockerfile.standalone" -t "$image_name"
 fi
 
