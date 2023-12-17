@@ -1,6 +1,6 @@
-- name: Install Java (default-jdk)
-  ansible.builtin.apt:
-    name: default-jdk
+- name: Install Java 17
+  apt:
+    name: openjdk-17-jdk
     state: present
 
 - name: Download GPG key
@@ -83,7 +83,38 @@
     groups: docker
     append: yes
 
+- name: Ensure a directory is present
+  become_user: jenkins
+  file:
+    path: /var/lib/jenkins/.ssh
+    state: directory
+    mode: '0755'
+
+- name: Vérifier l'existence de la clé SSH
+  become_user: jenkins
+  stat:
+    path: "/var/lib/jenkins/.ssh/id_rsa"
+  register: ssh_key
+
+- name: Vérifier l'existence de know_hosts
+  become_user: jenkins
+  stat:
+    path: "/var/lib/jenkins/.ssh/known_hosts"
+  register: known_hosts
+
+- name: Générer une paire de clés SSH
+  become_user: jenkins
+  ansible.builtin.command: ssh-keygen -b 2048 -t rsa -f /var/lib/jenkins/.ssh/id_rsa -q -N ""
+  when: not ssh_key.stat.exists
+
+- name: Get ssh key
+  become_user: jenkins
+  ansible.builtin.command: "cat /var/lib/jenkins/.ssh/id_rsa.pub"
+  register: ssh_key
+
 - name: Upload Jobs
+  vars:
+    public_key: "{{ssh_key.stdout}}"
   template:
     src: ../files/jobs/main.groovy
     dest: /var/lib/jenkins/jobs/main.groovy
@@ -105,10 +136,13 @@
     state: directory
     mode: '0755'
 
-- name: Add approve job
-  copy:
-    src: "../files/jobs/approve.groovy"
-    dest: "/var/lib/jenkins/init.groovy.d/approve.groovy"
+- name: Add init jobs
+  template:
+    src: "../files/jobs/{{item}}"
+    dest: "/var/lib/jenkins/init.groovy.d/{{item}}"
     owner: jenkins
     group: jenkins
     mode: '0644'
+  loop:
+    - "approve.groovy"
+    - "setup_jenkins_conf.groovy"

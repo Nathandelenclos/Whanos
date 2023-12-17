@@ -25,12 +25,14 @@ freeStyleJob("Whanos base images/Build all base images") {
 }
 
 freeStyleJob("link-project") {
+	description('Clé SSH publique:\n\n{{public_key}}')
 	parameters {
 		stringParam("GIT_URL", null, 'Git repository url (e.g.: "https://github.com/Octopus773/ts-hello-world.git")')
 		stringParam("DISPLAY_NAME", null, "Display name for the job")
 		stringParam("REGISTRY_URL", "{{registry_domain}}", "Registry to store docker image")
 	}
 	steps {
+		shell("ssh-keyscan github.com >> /var/lib/jenkins/.ssh/known_hosts")
 		dsl {
 			text('''
 				freeStyleJob("Projects/$DISPLAY_NAME") {
